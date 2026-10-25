@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎻 魔笛序曲 · 小提琴指法教学动画</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:linear-gradient(160deg,#1a1a2e,#16213e 60%,#0f3460); color:#fff; min-height:100vh; padding:14px; }
+  .wrap { max-width:1150px; margin:0 auto; }
+  h1 { text-align:center; font-size:26px; margin-bottom:4px; color:#ffd369; }
+  .sub { text-align:center; font-size:13px; color:#9fb8d8; margin-bottom:12px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; background:rgba(255,255,255,.07); border-radius:16px; padding:10px 12px; margin-bottom:12px; }
+  button { border:none; border-radius:12px; padding:10px 18px; font-size:16px; font-weight:bold; cursor:pointer; transition:.15s; }
+  button:active { transform:scale(.95); }
+  #playBtn { background:#ff5252; color:#fff; font-size:18px; padding:10px 26px; }
+  #playBtn.playing { background:#4caf50; }
+  .seg { background:rgba(255,255,255,.12); color:#dfe9f5; font-size:13px; padding:8px 12px; }
+  .seg.active { background:#ffd369; color:#333; }
+  .toggle { background:rgba(255,255,255,.12); color:#dfe9f5; font-size:13px; padding:8px 12px; }
+  .toggle.on { background:#4fc3f7; color:#08304a; }
+  .sliderbox { display:flex; align-items:center; gap:6px; font-size:13px; color:#dfe9f5; }
+  input[type=range] { width:130px; }
+  .main { display:grid; grid-template-columns:300px 1fr; gap:12px; }
+  @media (max-width:860px){ .main{grid-template-columns:1fr;} }
+  .card { background:rgba(255,255,255,.07); border-radius:18px; padding:14px; }
+  .nowbox { text-align:center; }
+  .nowbox .lab { font-size:12px; color:#9fb8d8; margin-bottom:2px; }
+  #bigSyll { min-height:70px; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; }
+  .schip { display:inline-flex; flex-direction:column; align-items:center; padding:4px 10px; border-radius:12px; background:rgba(255,255,255,.06); transition:.12s; }
+  .schip .syl { font-size:24px; font-weight:900; color:#cfe3ff; line-height:1.1; }
+  .schip .fgr { font-size:12px; font-weight:bold; line-height:1.3; }
+  .schip.done { opacity:.32; }
+  .schip.now { background:rgba(255,211,105,.18); box-shadow:0 0 16px rgba(255,211,105,.35); transform:scale(1.14); }
+  .schip.now .syl { font-size:34px; color:#ffd369; }
+  .schip.rest .syl { color:#8fa8c8; }
+  #bigName { font-size:18px; color:#cfe3ff; margin-bottom:6px; }
+  #bigFinger { width:74px; height:74px; border-radius:50%; margin:4px auto; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:900; color:#fff; background:#7f8c8d; box-shadow:0 0 24px rgba(255,255,255,.15); }
+  #bigString { font-size:16px; margin-top:6px; color:#cfe3ff; }
+  .fingertip { font-size:12px; color:#9fb8d8; margin-top:8px; line-height:1.5; }
+  .fingertip b{color:#ffd369;}
+  #staffWrap { position:relative; }
+  canvas { width:100%; display:block; border-radius:12px; background:rgba(255,255,255,.04); }
+  #fbWrap { margin-top:12px; text-align:center; }
+  #beat { display:inline-block; width:14px; height:14px; border-radius:50%; background:#334; margin:0 3px; }
+  #beat.on { background:#ffd369; box-shadow:0 0 10px #ffd369; }
+  #measNow { font-size:15px; color:#ffd369; font-weight:bold; }
+  .foot { text-align:center; font-size:12px; color:#7f95b5; margin-top:12px; line-height:1.6; }
+  .progress { height:10px; background:rgba(255,255,255,.1); border-radius:6px; overflow:hidden; margin-bottom:12px; }
+  #progBar { height:100%; width:0%; background:linear-gradient(90deg,#ff5252,#ffd369); }
+.home-btn{position:fixed;top:14px;right:16px;z-index:50;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#cfe0f5;text-decoration:none;font-size:13px;transition:background .2s;}
+.home-btn:hover{background:rgba(255,255,255,.18);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home-btn" href="../index.html">🏠 返回主页</a>
+  <h1>🎻 魔笛序曲 · 小提琴指法教学动画</h1>
+  <div class="sub">莫扎特《魔笛》序曲 · Violin III 声部 · 第一把位 · 0=空弦 1=食指 2=中指 3=无名指 4=小指</div>
+  <div class="progress"><div id="progBar"></div></div>
+  <div class="controls">
+    <button id="playBtn">▶ 播放</button>
+    <span id="segBtns"></span>
+    <button class="toggle on" id="loopBtn">🔁 循环</button>
+    <button class="toggle on" id="metroBtn">🥢 节拍器</button>
+    <button class="toggle on" id="countBtn">⏱ 预备拍</button>
+    <span class="sliderbox">🐢 <input type="range" id="speed" min="40" max="120" value="70"> 🐰 <span id="spdVal">70%</span></span>
+  </div>
+  <div class="main">
+    <div class="card nowbox">
+      <div class="lab">跟我唱（唱名）</div>
+      <div id="bigSyll">–</div>
+      <div id="bigName">按播放开始练习</div>
+      <div id="bigFinger">–</div>
+      <div class="lab">指法</div>
+      <div id="bigString"></div>
+      <div class="fingertip"><b>0</b>=空弦(不按) <b>1</b>=食指 <b>2</b>=中指 <b>3</b>=无名指 <b>4</b>=小指<br>先慢速练习，唱出唱名再拉琴哦！</div>
+    </div>
+    <div class="card">
+      <canvas id="staff" width="1200" height="240"></canvas>
+      <div style="text-align:center;margin-top:6px;">
+        <span id="measNow">第 1 小节</span>
+        <span style="margin-left:14px">拍 <span id="beat"></span><span id="beat"></span><span id="beat"></span><span id="beat"></span></span>
+      </div>
+      <div id="fbWrap"></div>
+    </div>
+  </div>
+  <div class="foot">💡 使用提示：先选一小段（如第1-8小节）→ 调慢速度 → 打开预备拍 → 边看指板图边跟唱拉奏。<br>弓法请按原谱标记（∏ 下弓 / V 上弓）练习 · 反复记号处本动画按顺序播放 · 速率100% = Allegro ♩=126</div>
+</div>
+<script>
+const DATA = {"events": [{"on": 0.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 1.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 2.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 3.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 4.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 5.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 6.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 1, "glyph": "œ"}, {"on": 7.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 1, "glyph": "œ"}, {"on": 8.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 9.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 10.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 11.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 12.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 13.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 14.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 2, "glyph": "œ"}, {"on": 15.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 2, "glyph": "œ"}, {"on": 16.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 3, "glyph": "œ"}, {"on": 17.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 3, "glyph": "œ"}, {"on": 18.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 3, "glyph": "œ"}, {"on": 19.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 3, "glyph": "œ"}, {"on": 20.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 3, "glyph": "œ"}, {"on": 21.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 3, "glyph": "œ"}, {"on": 22.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 3, "glyph": "œ"}, {"on": 23.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 3, "glyph": "œ"}, {"on": 24.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 4, "glyph": "œ"}, {"on": 25.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 4, "glyph": "œ"}, {"on": 26.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 4, "glyph": "œ"}, {"on": 27.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 4, "glyph": "œ"}, {"on": 28.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 4, "glyph": "œ"}, {"on": 29.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 4, "glyph": "œ"}, {"on": 30.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 4, "glyph": "œ"}, {"on": 31.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 4, "glyph": "œ"}, {"on": 32.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 5, "glyph": "œ"}, {"on": 33.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 5, "glyph": "œ"}, {"on": 34.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 5, "glyph": "œ"}, {"on": 35.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 5, "glyph": "œ"}, {"on": 36.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 5, "glyph": "œ"}, {"on": 37.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 5, "glyph": "œ"}, {"on": 38.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 5, "glyph": "œ"}, {"on": 39.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 5, "glyph": "œ"}, {"on": 40.0, "dur": 1, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 6, "glyph": "œ"}, {"on": 41.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 6, "glyph": "œ"}, {"on": 42.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 6, "glyph": "œ"}, {"on": 43.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 6, "glyph": "œ"}, {"on": 44.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 6, "glyph": "œ"}, {"on": 46.0, "dur": 2, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 6, "glyph": "œ"}, {"on": 48.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 7, "glyph": "œ"}, {"on": 49.0, "dur": 1, "rest": true, "meas": 7}, {"on": 50.0, "dur": 4, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 7, "glyph": "˙"}, {"on": 54.0, "dur": 2, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 7, "glyph": "œ"}, {"on": 56.0, "dur": 2, "rest": true, "meas": 8}, {"on": 58.0, "dur": 4, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 8, "glyph": "˙"}, {"on": 62.0, "dur": 2, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 8, "glyph": "œ"}, {"on": 64.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 9, "glyph": "œ"}, {"on": 65.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 9, "glyph": "œ"}, {"on": 66.0, "dur": 1, "rest": false, "midi": 76, "finger": "0", "syll": "mi", "str": "E", "name": "E5", "meas": 9, "glyph": "œ"}, {"on": 67.0, "dur": 1, "rest": false, "midi": 76, "finger": "0", "syll": "mi", "str": "E", "name": "E5", "meas": 9, "glyph": "œ"}, {"on": 68.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 9, "glyph": "œ"}, {"on": 69.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 9, "glyph": "œ"}, {"on": 70.0, "dur": 1, "rest": false, "midi": 74, "finger": "3", "syll": "re", "str": "A", "name": "D5", "meas": 9, "glyph": "œ"}, {"on": 71.0, "dur": 1, "rest": false, "midi": 74, "finger": "3", "syll": "re", "str": "A", "name": "D5", "meas": 9, "glyph": "œ"}, {"on": 72.0, "dur": 1, "rest": false, "midi": 71, "finger": "1", "syll": "si", "str": "A", "name": "B4", "meas": 10, "glyph": "œ"}, {"on": 73.0, "dur": 1, "rest": false, "midi": 71, "finger": "1", "syll": "si", "str": "A", "name": "B4", "meas": 10, "glyph": "œ"}, {"on": 74.0, "dur": 1, "rest": false, "midi": 74, "finger": "3", "syll": "re", "str": "A", "name": "D5", "meas": 10, "glyph": "œ"}, {"on": 75.0, "dur": 1, "rest": false, "midi": 74, "finger": "3", "syll": "re", "str": "A", "name": "D5", "meas": 10, "glyph": "œ"}, {"on": 76.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 10, "glyph": "œ"}, {"on": 77.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 10, "glyph": "œ"}, {"on": 78.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 10, "glyph": "œ"}, {"on": 79.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 10, "glyph": "œ"}, {"on": 80.0, "dur": 2, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 11, "glyph": "œ"}, {"on": 82.0, "dur": 1, "rest": false, "midi": 71, "finger": "1", "syll": "si", "str": "A", "name": "B4", "meas": 11, "glyph": "œ"}, {"on": 83.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 11, "glyph": "œ"}, {"on": 84.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 11, "glyph": "œ"}, {"on": 85.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 11, "glyph": "œ"}, {"on": 86.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 11, "glyph": "œ"}, {"on": 87.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 11, "glyph": "œ"}, {"on": 88.0, "dur": 4, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 12, "glyph": "˙"}, {"on": 92.0, "dur": 4, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 12, "glyph": "˙"}, {"on": 96.0, "dur": 4, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 13, "glyph": "˙"}, {"on": 100.0, "dur": 4, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 13, "glyph": "˙"}, {"on": 104.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 105.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 106.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 107.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 108.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 109.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 110.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 14, "glyph": "œ"}, {"on": 111.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 14, "glyph": "œ"}, {"on": 112.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 113.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 114.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 115.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 116.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 117.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 118.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 15, "glyph": "œ"}, {"on": 119.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 15, "glyph": "œ"}, {"on": 120.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 16, "glyph": "œ"}, {"on": 121.0, "dur": 1, "rest": true, "meas": 16}, {"on": 122.0, "dur": 4, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 16, "glyph": "˙"}, {"on": 126.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 16, "glyph": "œ"}, {"on": 128.0, "dur": 2, "rest": true, "meas": 17}, {"on": 130.0, "dur": 4, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 17, "glyph": "˙"}, {"on": 134.0, "dur": 2, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 17, "glyph": "œ"}, {"on": 136.0, "dur": 2, "rest": true, "meas": 18}, {"on": 138.0, "dur": 4, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 18, "glyph": "˙"}, {"on": 142.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 18, "glyph": "œ"}, {"on": 144.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 19, "glyph": "œ"}, {"on": 145.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 19, "glyph": "œ"}, {"on": 146.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 19, "glyph": "œ"}, {"on": 147.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 19, "glyph": "œ"}, {"on": 148.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 19, "glyph": "œ"}, {"on": 149.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 19, "glyph": "œ"}, {"on": 150.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 19, "glyph": "œ"}, {"on": 151.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 19, "glyph": "œ"}, {"on": 152.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 20, "glyph": "œ"}, {"on": 153.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 20, "glyph": "œ"}, {"on": 154.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 20, "glyph": "œ"}, {"on": 155.0, "dur": 1, "rest": false, "midi": 69, "finger": "0", "syll": "la", "str": "A", "name": "A4", "meas": 20, "glyph": "œ"}, {"on": 156.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 20, "glyph": "œ"}, {"on": 157.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 20, "glyph": "œ"}, {"on": 158.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 20, "glyph": "œ"}, {"on": 159.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 20, "glyph": "œ"}, {"on": 160.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 21, "glyph": "œ"}, {"on": 161.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 21, "glyph": "œ"}, {"on": 162.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "Fn4", "meas": 21, "glyph": "œ"}, {"on": 163.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "Fn4", "meas": 21, "glyph": "œ"}, {"on": 164.0, "dur": 1, "rest": false, "midi": 63, "finger": "1", "syll": "#re", "str": "D", "name": "D#4", "meas": 21, "glyph": "œ"}, {"on": 165.0, "dur": 1, "rest": false, "midi": 63, "finger": "1", "syll": "#re", "str": "D", "name": "D#4", "meas": 21, "glyph": "œ"}, {"on": 166.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 21, "glyph": "œ"}, {"on": 167.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 21, "glyph": "œ"}, {"on": 168.0, "dur": 1, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 22, "glyph": "œ"}, {"on": 169.0, "dur": 1, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 22, "glyph": "œ"}, {"on": 170.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "Dn4", "meas": 22, "glyph": "œ"}, {"on": 171.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "Dn4", "meas": 22, "glyph": "œ"}, {"on": 172.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 22, "glyph": "œ"}, {"on": 173.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 22, "glyph": "œ"}, {"on": 174.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 22, "glyph": "œ"}, {"on": 175.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 22, "glyph": "œ"}, {"on": 176.0, "dur": 4, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 23, "glyph": "˙"}, {"on": 180.0, "dur": 4, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 23, "glyph": "˙"}, {"on": 184.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 24, "glyph": "œ"}, {"on": 185.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 186.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 187.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 188.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 189.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 190.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 24, "glyph": "œ"}, {"on": 191.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 24, "glyph": "œ"}, {"on": 192.0, "dur": 2, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 25, "glyph": "œ"}, {"on": 194.0, "dur": 2, "rest": true, "meas": 25}, {"on": 196.0, "dur": 2, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 25, "glyph": "œ"}, {"on": 198.0, "dur": 2, "rest": true, "meas": 25}, {"on": 200.0, "dur": 2, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 26, "glyph": "œ"}, {"on": 202.0, "dur": 2, "rest": true, "meas": 26}, {"on": 204.0, "dur": 4, "rest": true, "meas": 26}, {"on": 208.0, "dur": 2, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 27, "glyph": "œ"}, {"on": 210.0, "dur": 2, "rest": true, "meas": 27}, {"on": 212.0, "dur": 2, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 27, "glyph": "œ"}, {"on": 214.0, "dur": 2, "rest": true, "meas": 27}, {"on": 216.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 28, "glyph": "œ"}, {"on": 218.0, "dur": 2, "rest": true, "meas": 28}, {"on": 220.0, "dur": 4, "rest": true, "meas": 28}, {"on": 224.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 29, "glyph": "œ"}, {"on": 226.0, "dur": 2, "rest": true, "meas": 29}, {"on": 228.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 29, "glyph": "œ"}, {"on": 230.0, "dur": 2, "rest": true, "meas": 29}, {"on": 232.0, "dur": 2, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 30, "glyph": "œ"}, {"on": 234.0, "dur": 2, "rest": true, "meas": 30}, {"on": 236.0, "dur": 2, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 30, "glyph": "œ"}, {"on": 238.0, "dur": 2, "rest": true, "meas": 30}, {"on": 240.0, "dur": 2, "rest": true, "meas": 31}, {"on": 242.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 31, "glyph": "œ"}, {"on": 244.0, "dur": 2, "rest": true, "meas": 31}, {"on": 246.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 31, "glyph": "œ"}, {"on": 248.0, "dur": 2, "rest": true, "meas": 32}, {"on": 250.0, "dur": 2, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 32, "glyph": "œ"}, {"on": 252.0, "dur": 2, "rest": true, "meas": 32}, {"on": 254.0, "dur": 2, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 32, "glyph": "œ"}, {"on": 256.0, "dur": 2, "rest": true, "meas": 33}, {"on": 258.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 33, "glyph": "œ"}, {"on": 260.0, "dur": 2, "rest": true, "meas": 33}, {"on": 262.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 33, "glyph": "œ"}, {"on": 264.0, "dur": 2, "rest": true, "meas": 34}, {"on": 266.0, "dur": 2, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 34, "glyph": "œ"}, {"on": 268.0, "dur": 2, "rest": true, "meas": 34}, {"on": 270.0, "dur": 2, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 34, "glyph": "œ"}, {"on": 272.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 273.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 274.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 275.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 276.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 277.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 35, "glyph": "œ"}, {"on": 278.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 35, "glyph": "œ"}, {"on": 279.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 35, "glyph": "œ"}, {"on": 280.0, "dur": 1, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 36, "glyph": "œ"}, {"on": 281.0, "dur": 1, "rest": true, "meas": 36}, {"on": 282.0, "dur": 4, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 36, "glyph": "˙"}, {"on": 286.0, "dur": 2, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 36, "glyph": "œ"}, {"on": 288.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 37, "glyph": "œ"}, {"on": 289.0, "dur": 1, "rest": true, "meas": 37}, {"on": 290.0, "dur": 4, "rest": false, "midi": 57, "finger": "1", "syll": "la", "str": "G", "name": "A3", "meas": 37, "glyph": "˙"}, {"on": 294.0, "dur": 2, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 37, "glyph": "œ"}, {"on": 296.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 38, "glyph": "œ"}, {"on": 298.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 38, "glyph": "œ"}, {"on": 300.0, "dur": 2, "rest": true, "meas": 38}, {"on": 302.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 38, "glyph": "œ"}, {"on": 304.0, "dur": 2, "rest": true, "meas": 39}, {"on": 306.0, "dur": 2, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 39, "glyph": "œ"}, {"on": 308.0, "dur": 2, "rest": true, "meas": 39}, {"on": 310.0, "dur": 2, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 39, "glyph": "œ"}, {"on": 312.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 40, "glyph": "œ"}, {"on": 313.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 40, "glyph": "œ"}, {"on": 314.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 40, "glyph": "œ"}, {"on": 315.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 40, "glyph": "œ"}, {"on": 316.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 40, "glyph": "œ"}, {"on": 317.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 40, "glyph": "œ"}, {"on": 318.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 40, "glyph": "œ"}, {"on": 319.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 40, "glyph": "œ"}, {"on": 320.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 41, "glyph": "œ"}, {"on": 321.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 41, "glyph": "œ"}, {"on": 322.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 41, "glyph": "œ"}, {"on": 323.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 41, "glyph": "œ"}, {"on": 324.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 41, "glyph": "œ"}, {"on": 325.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 41, "glyph": "œ"}, {"on": 326.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 41, "glyph": "œ"}, {"on": 327.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 41, "glyph": "œ"}, {"on": 328.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 42, "glyph": "œ"}, {"on": 329.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 42, "glyph": "œ"}, {"on": 330.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 42, "glyph": "œ"}, {"on": 331.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 42, "glyph": "œ"}, {"on": 332.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 42, "glyph": "œ"}, {"on": 333.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 42, "glyph": "œ"}, {"on": 334.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 42, "glyph": "œ"}, {"on": 335.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 42, "glyph": "œ"}, {"on": 336.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 43, "glyph": "œ"}, {"on": 337.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 43, "glyph": "œ"}, {"on": 338.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 43, "glyph": "œ"}, {"on": 339.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 43, "glyph": "œ"}, {"on": 340.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 43, "glyph": "œ"}, {"on": 341.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 43, "glyph": "œ"}, {"on": 342.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 43, "glyph": "œ"}, {"on": 343.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 43, "glyph": "œ"}, {"on": 344.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 44, "glyph": "œ"}, {"on": 345.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 44, "glyph": "œ"}, {"on": 346.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 44, "glyph": "œ"}, {"on": 347.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 44, "glyph": "œ"}, {"on": 348.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 44, "glyph": "œ"}, {"on": 349.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 44, "glyph": "œ"}, {"on": 350.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 44, "glyph": "œ"}, {"on": 351.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 44, "glyph": "œ"}, {"on": 352.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 45, "glyph": "œ"}, {"on": 353.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 45, "glyph": "œ"}, {"on": 354.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 45, "glyph": "œ"}, {"on": 355.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 45, "glyph": "œ"}, {"on": 356.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 45, "glyph": "œ"}, {"on": 357.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 45, "glyph": "œ"}, {"on": 358.0, "dur": 1, "rest": false, "midi": 65, "finger": "2", "syll": "fa", "str": "D", "name": "F4", "meas": 45, "glyph": "œ"}, {"on": 359.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 45, "glyph": "œ"}, {"on": 360.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 46, "glyph": "œ"}, {"on": 361.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 46, "glyph": "œ"}, {"on": 362.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 46, "glyph": "œ"}, {"on": 363.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 46, "glyph": "œ"}, {"on": 364.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 46, "glyph": "œ"}, {"on": 365.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 46, "glyph": "œ"}, {"on": 366.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 46, "glyph": "œ"}, {"on": 367.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 46, "glyph": "œ"}, {"on": 368.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 47, "glyph": "œ"}, {"on": 369.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 47, "glyph": "œ"}, {"on": 370.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 47, "glyph": "œ"}, {"on": 371.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 47, "glyph": "œ"}, {"on": 372.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 47, "glyph": "œ"}, {"on": 373.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 47, "glyph": "œ"}, {"on": 374.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 47, "glyph": "œ"}, {"on": 375.0, "dur": 1, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 47, "glyph": "œ"}, {"on": 376.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 377.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 378.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 379.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 380.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 381.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 382.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 383.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 48, "glyph": "œ"}, {"on": 384.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 385.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 386.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 387.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 388.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 389.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 390.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 391.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 49, "glyph": "œ"}, {"on": 392.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 393.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 394.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 395.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 396.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 398.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 50, "glyph": "œ"}, {"on": 400.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 51, "glyph": "œ"}, {"on": 402.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 51, "glyph": "œ"}, {"on": 404.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 51, "glyph": "œ"}, {"on": 406.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 51, "glyph": "œ"}, {"on": 408.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 409.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 410.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 411.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 412.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 413.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 414.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 415.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 52, "glyph": "œ"}, {"on": 416.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 417.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 418.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 419.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 420.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 421.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 422.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 423.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 53, "glyph": "œ"}, {"on": 424.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 425.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 426.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 427.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 428.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 430.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 54, "glyph": "œ"}, {"on": 432.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 55, "glyph": "œ"}, {"on": 434.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 55, "glyph": "œ"}, {"on": 436.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 55, "glyph": "œ"}, {"on": 438.0, "dur": 2, "rest": false, "midi": 59, "finger": "2", "syll": "si", "str": "G", "name": "B3", "meas": 55, "glyph": "œ"}, {"on": 440.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 441.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 442.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 443.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 444.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 445.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 446.0, "dur": 1, "rest": false, "midi": 71, "finger": "1", "syll": "si", "str": "A", "name": "B4", "meas": 56, "glyph": "œ"}, {"on": 447.0, "dur": 1, "rest": false, "midi": 72, "finger": "2", "syll": "do", "str": "A", "name": "C5", "meas": 56, "glyph": "œ"}, {"on": 448.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 449.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 450.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 451.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 452.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 453.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 454.0, "dur": 1, "rest": false, "midi": 66, "finger": "2", "syll": "#fa", "str": "D", "name": "F#4", "meas": 57, "glyph": "œ"}, {"on": 455.0, "dur": 1, "rest": false, "midi": 67, "finger": "3", "syll": "sol", "str": "D", "name": "G4", "meas": 57, "glyph": "œ"}, {"on": 456.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 457.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 458.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 459.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 460.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 461.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 462.0, "dur": 1, "rest": false, "midi": 62, "finger": "0", "syll": "re", "str": "D", "name": "D4", "meas": 58, "glyph": "œ"}, {"on": 463.0, "dur": 1, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 58, "glyph": "œ"}, {"on": 464.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 59, "glyph": "œ"}, {"on": 465.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 59, "glyph": "œ"}, {"on": 466.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 59, "glyph": "œ"}, {"on": 467.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 59, "glyph": "œ"}, {"on": 468.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 59, "glyph": "œ"}, {"on": 469.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 59, "glyph": "œ"}, {"on": 470.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 59, "glyph": "œ"}, {"on": 471.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 59, "glyph": "œ"}, {"on": 472.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 60, "glyph": "œ"}, {"on": 473.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 60, "glyph": "œ"}, {"on": 474.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 60, "glyph": "œ"}, {"on": 475.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 60, "glyph": "œ"}, {"on": 476.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 60, "glyph": "œ"}, {"on": 477.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 60, "glyph": "œ"}, {"on": 478.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 60, "glyph": "œ"}, {"on": 479.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 60, "glyph": "œ"}, {"on": 480.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 61, "glyph": "œ"}, {"on": 481.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 61, "glyph": "œ"}, {"on": 482.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 61, "glyph": "œ"}, {"on": 483.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 61, "glyph": "œ"}, {"on": 484.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 61, "glyph": "œ"}, {"on": 485.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 61, "glyph": "œ"}, {"on": 486.0, "dur": 1, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 61, "glyph": "œ"}, {"on": 487.0, "dur": 1, "rest": false, "midi": 55, "finger": "0", "syll": "sol", "str": "G", "name": "G3", "meas": 61, "glyph": "œ"}, {"on": 488.0, "dur": 2, "rest": false, "midi": 60, "finger": "3", "syll": "do", "str": "G", "name": "C4", "meas": 62, "glyph": "œ"}, {"on": 490.0, "dur": 2, "rest": true, "meas": 62}, {"on": 492.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 62, "glyph": "œ"}, {"on": 494.0, "dur": 2, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 62, "glyph": "œ"}, {"on": 496.0, "dur": 4, "rest": false, "midi": 64, "finger": "1", "syll": "mi", "str": "D", "name": "E4", "meas": 63, "glyph": "˙"}, {"on": 500.0, "dur": 4, "rest": true, "meas": 63}], "measStart": {"1": 0.0, "2": 8.0, "3": 16.0, "4": 24.0, "5": 32.0, "6": 40.0, "7": 48.0, "8": 56.0, "9": 64.0, "10": 72.0, "11": 80.0, "12": 88.0, "13": 96.0, "14": 104.0, "15": 112.0, "16": 120.0, "17": 128.0, "18": 136.0, "19": 144.0, "20": 152.0, "21": 160.0, "22": 168.0, "23": 176.0, "24": 184.0, "25": 192.0, "26": 200.0, "27": 208.0, "28": 216.0, "29": 224.0, "30": 232.0, "31": 240.0, "32": 248.0, "33": 256.0, "34": 264.0, "35": 272.0, "36": 280.0, "37": 288.0, "38": 296.0, "39": 304.0, "40": 312.0, "41": 320.0, "42": 328.0, "43": 336.0, "44": 344.0, "45": 352.0, "46": 360.0, "47": 368.0, "48": 376.0, "49": 384.0, "50": 392.0, "51": 400.0, "52": 408.0, "53": 416.0, "54": 424.0, "55": 432.0, "56": 440.0, "57": 448.0, "58": 456.0, "59": 464.0, "60": 472.0, "61": 480.0, "62": 488.0, "63": 496.0}, "totalMeas": 63, "totalEighths": 504.0, "bpm": 126};const ART={"stac":[164.0,174.0,175.0,176.0,440.0,441.0,442.0,443.0,444.0,445.0],"slurs":[[6.0,7.0],[14.0,15.0],[110.0,111.0],[122.0,126.0],[130.0,134.0],[138.0,142.0],[190.0,191.0],[312.0,315.0],[316.0,319.0],[320.0,323.0],[324.0,327.0],[328.0,331.0],[332.0,335.0],[336.0,339.0],[340.0,343.0],[344.0,347.0],[348.0,351.0],[446.0,447.0],[454.0,455.0]],"dyn":[[14.0,"f"],[30.0,"f"],[32.0,"p"],[50.0,"f"],[62.0,"f"],[85.0,"f"],[88.0,"f"],[118.0,"f"],[138.0,"f"],[185.0,"p"],[250.0,"f"],[266.0,"f"],[356.0,"f"],[358.0,"f"],[454.0,"f"]]};const STACSET=new Set(ART.stac);
+const EV = DATA.events, MS = DATA.measStart, TM = DATA.totalMeas, TOT = DATA.totalEighths, BPM = DATA.bpm;const EVBYON={};EV.forEach(e=>EVBYON[e.on]=e);
+const STRING_Y = {E:0, A:1, D:2, G:3};
+const STR_CN = {G:"G弦（第4弦·最粗）", D:"D弦（第3弦）", A:"A弦（第2弦）", E:"E弦（第1弦·最细）"};
+const STR_COLOR = {G:"#b07cff", D:"#4fa8ff", A:"#5dd97c", E:"#ffb14f"};
+const FINGER_COLOR = {"0":"#7f8c8d","1":"#e74c3c","2":"#e67e22","3":"#27ae60","4":"#2980b9"};
+const LETTERS = "CDEFGAB";
+const SYL={C:"do",D:"re",E:"mi",F:"fa",G:"sol",A:"la",B:"si"};
+const sylOf=n=>{const m=n.match(/^([A-G])(#?)/);return m?(m[2]?"\u266f":"")+SYL[m[1]]:n;};
+
+// —— 状态 ——
+let playing=false, startOn=0, endOn=TOT, t0=0, speed=0.7, loop=true, metro=true, countin=true;
+let scheduled=[], timer=null, raf=null, curEv=null;
+
+const eighthDur = () => 60/BPM/2/speed;
+
+// —— 音频 ——
+let AC=null;
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function playNote(midi, t, durS){
+  const c=ac(), f=440*Math.pow(2,(midi-69)/12);
+  // —— 小提琴音色：锯齿波（弓弦泛音丰富）+ 延迟颤音（揉弦）+ 琴体共振峰 ——
+  const o1=c.createOscillator(), o2=c.createOscillator();
+  o1.type="sawtooth"; o2.type="sawtooth";
+  o1.frequency.value=f; o2.frequency.value=f*1.003;
+  // 揉弦：约5.5Hz 颤音，延迟出现并逐渐加深
+  const lfo=c.createOscillator(), lfoG=c.createGain();
+  lfo.type="sine"; lfo.frequency.value=5.5;
+  lfoG.gain.setValueAtTime(0,t);
+  lfoG.gain.linearRampToValueAtTime(14, t+Math.min(0.45, Math.max(0.15, durS*0.4)));
+  lfo.connect(lfoG); lfoG.connect(o1.detune); lfoG.connect(o2.detune);
+  lfo.start(t); lfo.stop(t+durS+0.08);
+  // 音量包络：连奏运弓——收弓尾音与下一音的起弓交叉衔接，无割裂感
+  const g=c.createGain();
+  const a=0.05, peak=0.24, sus=0.20, tail=0.06;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(peak,t+a);
+  g.gain.linearRampToValueAtTime(sus,t+Math.max(a+0.02,durS-0.05));
+  g.gain.linearRampToValueAtTime(0.0001,t+durS+tail);
+  // 琴体共鸣：小提琴箱体共振峰（~450Hz / ~1100Hz）+ 柔和低通
+  const mix=c.createGain(); mix.gain.value=1;
+  const g2=c.createGain(); g2.gain.value=.5;
+  o1.connect(mix); o2.connect(g2); g2.connect(mix);
+  const pk1=c.createBiquadFilter(); pk1.type="peaking"; pk1.frequency.value=450; pk1.Q.value=2; pk1.gain.value=9;
+  const pk2=c.createBiquadFilter(); pk2.type="peaking"; pk2.frequency.value=1100; pk2.Q.value=3; pk2.gain.value=5;
+  const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2800; lp.Q.value=0.7;
+  mix.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(g); g.connect(c.destination);
+  o1.start(t); o2.start(t); o1.stop(t+durS+0.08); o2.stop(t+durS+0.08);
+  scheduled.push(o1,o2,lfo);
+}
+function click(t, accent){
+  const c=ac(), o=c.createOscillator(), g=c.createGain();
+  o.type="square"; o.frequency.value=accent?1600:1050;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(accent?0.18:0.10,t+0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t+0.09);
+  scheduled.push(o);
+}
+function stopAll(){
+  scheduled.forEach(s=>{ try{s.stop(0);}catch(e){} });
+  scheduled=[];
+}
+
+// —— 控件 ——
+const playBtn=document.getElementById('playBtn');
+const segBtns=document.getElementById('segBtns');
+const SEGS=[[1,8],[9,16],[17,24],[25,32],[33,40],[41,48],[49,56],[57,63],[1,TM]];
+const SEGN=["1-8","9-16","17-24","25-32","33-40","41-48","49-56","57-63","全曲"];
+let segIdx=8;
+SEGS.forEach((s,i)=>{
+  const b=document.createElement('button'); b.className='seg'+(i==segIdx?' active':''); b.textContent=SEGN[i];
+  b.onclick=()=>{ segIdx=i; document.querySelectorAll('.seg').forEach((e,j)=>e.classList.toggle('active',j==i));
+    stop(); startOn=MS[s[0]]; endOn=(s[1]<TM?MS[s[1]+1]:TOT); draw(); updateNow(null); };
+  segBtns.appendChild(b);
+});
+startOn=MS[1]; endOn=TOT;
+const loopBtn=document.getElementById('loopBtn'), metroBtn=document.getElementById('metroBtn'), countBtn=document.getElementById('countBtn');
+loopBtn.onclick=()=>{loop=!loop; loopBtn.classList.toggle('on',loop);};
+metroBtn.onclick=()=>{metro=!metro; metroBtn.classList.toggle('on',metro);};
+countBtn.onclick=()=>{countin=!countin; countBtn.classList.toggle('on',countin);};
+const speedEl=document.getElementById('speed'), spdVal=document.getElementById('spdVal');
+speedEl.oninput=()=>{ speed=speedEl.value/100; spdVal.textContent=speedEl.value+'%'; if(playing){stop();play();} };
+
+function schedule(){
+  const c=ac(), ed=eighthDur();
+  let lead=0;
+  if(countin){ for(let i=0;i<4;i++) click(t0+i*2*ed, i==0); lead=8; }
+  const from=startOn, to=endOn;
+  for(const e of EV){
+    if(e.on<from-0.01 || e.on>=to) continue;
+    const t=t0+lead*ed+(e.on-from)*ed;
+    if(!e.rest) playNote(e.midi, t, e.dur*ed*1.02);
+  }
+  if(metro){
+    for(let b=Math.ceil(from/2)*2; b<to; b+=2){
+      const t=t0+lead*ed+(b-from)*ed;   // lead=预备拍8个八分, 与音符对齐
+      if(countin && b<from+8 && from==0){} // 预备拍期间由预备拍声代替
+      click(t, ((b/2)%4)==0);
+    }
+  }
+  if(countin) schedEnd=to+8; else schedEnd=to;
+}
+let schedEnd=0;
+function play(){
+  const c=ac(); c.resume();
+  t0=c.currentTime+0.15;
+  schedule();
+  playing=true; playBtn.textContent='⏸ 暂停'; playBtn.classList.add('playing');
+  tick();
+}
+function stop(){
+  playing=false; stopAll(); clearTimeout(timer); cancelAnimationFrame(raf);
+  playBtn.textContent='▶ 播放'; playBtn.classList.remove('playing');
+}
+playBtn.onclick=()=>{ playing?stop():play(); };
+document.addEventListener('keydown',e=>{ if(e.code=='Space'){e.preventDefault(); playBtn.click();} });
+
+function tick(){
+  if(!playing) return;
+  const ed=eighthDur();
+  const pos=(AC.currentTime-t0)/ed+startOn-(countin?8:0);
+  if(pos>=schedEnd){
+    if(loop){ stop(); play(); return; }
+    stop(); updateNow(null); draw(); return;
+  }
+  updateNow(pos); draw(pos);
+  raf=requestAnimationFrame(tick);
+}
+
+// —— 当前音符显示 ——
+const beats=document.querySelectorAll('#beat');
+function updateNow(pos){
+  let cur=null;
+  if(pos!==null){
+    for(const e of EV){ if(pos>=e.on && pos<e.on+e.dur){ cur=e; break; } }
+  }
+  curEv=cur;
+  const bs=document.getElementById('bigSyll'), bn=document.getElementById('bigName'),
+        bf=document.getElementById('bigFinger'), bstr=document.getElementById('bigString');
+  const mEv = EV.filter(e=>e.meas===(cur?cur.meas:null));
+  if(!cur){
+    bs.innerHTML='<span style="font-size:20px;color:#9fb8d8;">按播放开始练习</span>';
+    bn.textContent='–'; bf.textContent='–'; bf.style.background='#7f8c8d'; bstr.textContent='';
+  } else {
+    bn.textContent='第 '+cur.meas+' 小节';
+    bs.innerHTML='';
+    mEv.forEach(e=>{
+      const s=document.createElement('span');
+      s.className='schip'+(e.rest?' rest':'');
+      if(pos!==null && pos>=e.on+e.dur-0.01) s.classList.add('done');
+      if(e===cur) s.classList.add('now');
+      const syl=document.createElement('span'); syl.className='syl'; syl.textContent=e.rest?'🤫':e.syll;
+      const fgr=document.createElement('span'); fgr.className='fgr';
+      fgr.textContent=e.rest?'·':e.finger; fgr.style.color=e.rest?'#8fa8c8':FINGER_COLOR[e.finger];
+      s.appendChild(syl); s.appendChild(fgr);
+      bs.appendChild(s);
+    });
+    if(cur.rest){
+      bf.textContent='·'; bf.style.background='#3a4a66'; bstr.textContent='休息 · 心里数拍子';
+    } else {
+      bf.textContent=cur.finger; bf.style.background=FINGER_COLOR[cur.finger];
+      bstr.textContent=STR_CN[cur.str]+' · '+cur.name;
+    }
+  }
+  if(pos!==null){
+    const beat=((Math.floor((pos-startOn)/2)%4)+4)%4;
+    beats.forEach((b,i)=>b.classList.toggle('on', playing && i==beat));
+  } else beats.forEach(b=>b.classList.remove('on'));
+  const m = pos===null? startOn>=0? Math.floor(startOn/8)+1 : 1 : Math.min(TM, Math.floor(pos/8)+1);
+  document.getElementById('measNow').textContent='第 '+m+' 小节';
+  document.getElementById('progBar').style.width=(100*Math.min(1,Math.max(0,(pos-startOn)/(endOn-startOn))))+'%';
+}
+
+// —— 谱面画布 ——
+const cv=document.getElementById('staff'), ctx=cv.getContext('2d');
+function fitCanvas(){
+  const w=cv.clientWidth||1100;
+  cv.width=w*2; cv.height=480;
+  ctx.setTransform(2,0,0,2,0,0);
+}
+window.addEventListener('resize',()=>{fitCanvas();draw(playPos());});
+function playPos(){ return playing? (AC.currentTime-t0)/eighthDur()+startOn-(countin?8:0) : (curEv? curEv.on : startOn); }
+
+const TOP=70, HS=16;      // 五线谱顶线y、线间距
+function diY(di){ return TOP+(38-di)*HS/2; }
+
+function draw(pos){
+  if(pos===undefined) pos=playPos();
+  const W=cv.clientWidth||1100, H=240;
+  ctx.clearRect(0,0,W,H);
+  const px=44;                     // 每八分音符像素
+  const cx=Math.round(W*0.32);     // 播放头位置
+  // 五线
+  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1;
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(0,TOP+i*HS); ctx.lineTo(W,TOP+i*HS); ctx.stroke(); }
+  // 播放头
+  ctx.strokeStyle='#ffd369'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(cx,16); ctx.lineTo(cx,H-56); ctx.stroke();
+  const lo=pos-(cx)/px-2, hi=pos+(W-cx)/px+2;
+  // 小节线与编号
+  for(let m=1;m<=TM;m++){
+    const x=cx+(MS[m]-pos)*px;
+    if(x<-40||x>W+40) continue;
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.moveTo(x,TOP); ctx.lineTo(x,TOP+4*HS); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='11px sans-serif'; ctx.fillText(m, x+4, 18);
+  }
+  // 音符与休止
+  for(const e of EV){
+    if(e.on+e.dur<lo || e.on>hi) continue;
+    const x=cx+(e.on-pos)*px;
+    if(e.rest){
+      ctx.fillStyle='rgba(160,190,230,.85)';
+      if(e.dur>=4){ ctx.fillRect(x-6, TOP+HS*1.2, 12, 6); }        // 二分休止(示意)
+      else if(e.dur==2){ ctx.fillRect(x-3, TOP+HS*1.1, 6, HS*1.9); } // 四分休止(示意块)
+      else { ctx.fillRect(x-3, TOP+HS*1.1, 6, 9); }
+      continue;
+    }
+    const y=diY(38-(38- (3+ (e.octave)*7 + LETTERS.indexOf(e.name[0]) )));  // placeholder
+    // 直接用 midi 对五线位置: F5=77 顶线
+    const yy=TOP+((77-e.midi)*HS/2);
+    const isNow = curEv===e;
+    const col=STR_COLOR[e.str];
+    ctx.save();
+    if(isNow){ ctx.shadowColor='#ffd369'; ctx.shadowBlur=18; }
+    // 符头
+    ctx.beginPath();
+    ctx.ellipse(x, yy, 8.5, 6.2, -0.35, 0, Math.PI*2);
+    if(e.glyph=='˙'){ ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke(); }
+    else { ctx.fillStyle=col; ctx.fill(); }
+    ctx.restore();
+    // 指法
+    ctx.fillStyle=FINGER_COLOR[e.finger];
+    ctx.font='bold '+(isNow?17:14)+'px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(e.finger, x, yy+30);
+    // 唱名
+    ctx.fillStyle=isNow?'#ffd369':'rgba(210,225,245,.85)';
+    ctx.font=(isNow?'bold 13':'11')+'px sans-serif';
+    ctx.fillText(e.syll, x, yy+45);
+  }
+  // —— 奏法与力度标注 ——
+  ctx.textAlign='center';
+  for(const D of ART.dyn){
+    if(D[0]<lo-4||D[0]>hi+4) continue;
+    ctx.fillStyle='rgba(255,211,105,.95)'; ctx.font='bold italic 15px Georgia';
+    ctx.fillText(D[1], cx+(D[0]-pos)*px, TOP-24);
+  }
+  ctx.lineWidth=1.6;
+  for(const S of ART.slurs){
+    if(S[1]<lo||S[0]>hi) continue;
+    const ea=EVBYON[S[0]], eb=EVBYON[S[1]];
+    if(!ea||!eb) continue;
+    const xa=cx+(S[0]-pos)*px, xb=cx+(S[1]-pos)*px;
+    const ya=TOP+((77-ea.midi)*HS/2)-16, yb=TOP+((77-eb.midi)*HS/2)-16;
+    ctx.strokeStyle='rgba(255,211,105,.55)';
+    ctx.beginPath(); ctx.moveTo(xa,ya);
+    ctx.bezierCurveTo(xa+(xb-xa)*.3, Math.min(ya,yb)-14, xa+(xb-xa)*.7, Math.min(ya,yb)-14, xb, yb);
+    ctx.stroke();
+  }
+  for(const e of EV){
+    if(e.rest||!STACSET.has(e.on)||e.on<lo-1||e.on>hi+1) continue;
+    ctx.fillStyle=STR_COLOR[e.str];
+    ctx.beginPath(); ctx.arc(cx+(e.on-pos)*px, TOP+((77-e.midi)*HS/2)-13, 2.1, 0, Math.PI*2); ctx.fill();
+  }
+  // 指板
+  drawFB();
+}
+
+// —— 指板 ——
+const fb=document.createElementNS('http://www.w3.org/2000/svg','svg');
+fb.setAttribute('id','fb'); fb.setAttribute('viewBox','0 0 560 190');
+fb.setAttribute('style','width:100%;max-width:560px;background:linear-gradient(180deg,#5a3a1e,#7a5230);border-radius:12px;');
+document.getElementById('fbWrap').appendChild(fb);
+const NS='http://www.w3.org/2000/svg';
+const STR_MIDI={G:55,D:62,A:69,E:76};
+const strLines={}, strLabels={}, posMarks={};
+(function buildFB(){
+  const mk=(tag,attrs,parent)=>{const el=document.createElementNS(NS,tag);for(const k in attrs)el.setAttribute(k,attrs[k]);(parent||fb).appendChild(el);return el;};
+  // 琴枕
+  mk('rect',{x:38,y:8,width:9,height:158,fill:'#e8e8e8',rx:2});
+  // 品记号
+  [1,2,3,4].forEach(i=>{
+    const x=140+i*95;
+    mk('circle',{cx:x,cy:175,r:6,fill:'rgba(255,255,255,.25)'});
+    const t=mk('text',{x:x,y:179,'text-anchor':'middle','font-size':9,fill:'rgba(255,255,255,.5)'}); t.textContent=i;
+  });
+  ['G','D','A','E'].forEach((s,i)=>{
+    const y=30+i*38;
+    const ln=mk('line',{x1:47,y1:y,x2:545,y2:y,stroke:STR_COLOR[s],'stroke-width':i==0?5:4-i*0.4,opacity:.5});
+    strLines[s]=ln;
+    const lb=mk('text',{x:16,y:y+5,'font-size':15,'font-weight':'bold',fill:STR_COLOR[s]}); lb.textContent=s;
+    strLabels[s]=lb;
+  });
+  // 活动指标记
+  const g=mk('g',{id:'fbMark',opacity:0});
+  mk('circle',{cx:0,cy:0,r:17,fill:'#ffd369',stroke:'#c88a00','stroke-width':2},g);
+  const t1=mk('text',{x:0,y:-22,'text-anchor':'middle','font-size':13,'font-weight':'bold',fill:'#fff'},g);
+  const t2=mk('text',{x:0,y:6,'text-anchor':'middle','font-size':17,'font-weight':'900',fill:'#7a3c00'},g);
+  g._t1=t1; g._t2=t2;
+})();
+const fbMark=document.getElementById('fbMark');
+function drawFB(){
+  const e=curEv;
+  ['G','D','A','E'].forEach(s=>{
+    strLines[s].setAttribute('opacity', e&&!e.rest&&e.str==s? 1 : .5);
+    strLines[s].setAttribute('stroke-width', e&&!e.rest&&e.str==s? 7 : (s=='G'?5:4-STRING_Y[s]*0.4));
+  });
+  if(!e || e.rest){ fbMark.setAttribute('opacity',0); return; }
+  const y=30+STRING_Y[e.str]*38;
+  const x= e.finger=='0'? 42.5 : 140+parseInt(e.finger)*95;
+  fbMark.setAttribute('transform',`translate(${x},${y})`);
+  fbMark.setAttribute('opacity',1);
+  fbMark._t1.textContent=sylOf(e.name);
+  fbMark._t2.textContent=e.finger=='0'?'空':e.finger;
+}
+
+fitCanvas(); draw(); updateNow(null);
+</script>
+</body>
+</html>

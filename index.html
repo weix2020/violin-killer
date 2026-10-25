@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>小提琴指法教室 · 曲目索引</title>
+<style>
+  :root{
+    --paper:#f7f4ed; --card:#fffdf9; --ink:#2f2a24; --sub:#7d7466;
+    --line:#e5ddcf; --accent-deep:#6f5527;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    line-height:1.65;}
+  .wrap{max-width:720px;margin:0 auto;padding:52px 22px 64px;}
+
+  /* —— 顶部五线谱装饰 —— */
+  .staff{position:relative;height:64px;margin-bottom:20px;color:#b8aa8d;}
+  .staff .lines{position:absolute;left:0;right:0;top:6px;height:53px;
+    background:
+      linear-gradient(var(--line),var(--line)) 0 0/100% 1px no-repeat,
+      linear-gradient(var(--line),var(--line)) 0 13px/100% 1px no-repeat,
+      linear-gradient(var(--line),var(--line)) 0 26px/100% 1px no-repeat,
+      linear-gradient(var(--line),var(--line)) 0 39px/100% 1px no-repeat,
+      linear-gradient(var(--line),var(--line)) 0 52px/100% 1px no-repeat;}
+  .note{position:absolute;width:11px;height:8px;background:currentColor;
+    border-radius:50%;transform:rotate(-18deg);}
+  .note::after{content:"";position:absolute;right:0;top:-22px;width:1.5px;height:27px;background:currentColor;}
+  .dyn{position:absolute;right:2px;top:20px;font-family:Georgia,"Times New Roman",serif;
+    font-style:italic;font-size:15px;color:#a3957a;}
+
+  header{border-bottom:3px double var(--line);padding-bottom:26px;margin-bottom:6px;}
+  h1{font-family:"Songti SC","Noto Serif SC","STSong",serif;font-weight:700;
+    font-size:32px;letter-spacing:2px;}
+  .sub{margin-top:8px;font-size:14px;color:var(--sub);}
+
+  /* —— 曲目卡片 —— */
+  .piece{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:22px 24px;margin-top:20px;transition:.18s ease;}
+  .piece:hover{border-color:#cfc3ab;box-shadow:0 8px 20px rgba(60,45,20,.07);transform:translateY(-2px);}
+  .piece h2{font-family:"Songti SC","Noto Serif SC","STSong",serif;font-size:22px;font-weight:700;}
+  .piece h2 .en{font-size:13px;color:var(--sub);font-weight:400;margin-left:8px;letter-spacing:.4px;}
+  .meta{font-size:13px;color:var(--sub);margin-top:3px;}
+  .tags{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+  .tags span{font-size:12px;color:var(--accent-deep);background:#f1ead9;
+    border:1px solid #e6dcc4;border-radius:999px;padding:2px 11px;}
+  .actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{display:inline-block;font-size:14px;text-decoration:none;border-radius:10px;
+    padding:8px 18px;transition:.15s ease;}
+  .btn.solid{background:var(--ink);color:#f7f4ed;}
+  .btn.solid:hover{background:#1d1914;}
+  .btn.ghost{border:1px solid #d8cebb;color:var(--ink);background:transparent;}
+  .btn.ghost:hover{border-color:#a99b7e;background:#faf7f0;}
+  .btn.disabled{background:#efe9dc;color:#aaa08d;cursor:default;}
+  .soon{font-size:12px;color:#aaa08d;align-self:center;}
+
+  /* —— PDF 侧边抽屉 —— */
+  .mask{position:fixed;inset:0;background:rgba(47,42,36,.38);opacity:0;
+    pointer-events:none;transition:opacity .25s ease;z-index:40;}
+  .mask.on{opacity:1;pointer-events:auto;}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(820px,92vw);
+    background:var(--card);border-left:1px solid var(--line);
+    box-shadow:-12px 0 32px rgba(50,38,20,.14);
+    transform:translateX(102%);transition:transform .32s cubic-bezier(.22,.8,.3,1);
+    z-index:50;display:flex;flex-direction:column;}
+  .drawer.on{transform:translateX(0);}
+  .dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 18px;border-bottom:1px solid var(--line);}
+  .dhead h3{font-family:"Songti SC","Noto Serif SC","STSong",serif;
+    font-size:17px;font-weight:700;}
+  .dhead .dlink{font-size:12px;color:var(--sub);text-decoration:none;}
+  .dhead .dlink:hover{color:var(--ink);text-decoration:underline;}
+  .dclose{border:none;background:transparent;font-size:26px;line-height:1;
+    color:var(--sub);cursor:pointer;padding:2px 10px;border-radius:8px;transition:.15s;}
+  .dclose:hover{background:#f1ead9;color:var(--ink);}
+  #pdfFrame{flex:1;width:100%;border:none;background:#f1eee6;}
+
+  /* —— 使用建议 —— */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;}
+  .step{font-size:13px;color:var(--sub);border-top:2px solid var(--line);padding-top:10px;}
+  .step b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px;font-weight:600;}
+
+  footer{margin-top:38px;font-size:12px;color:#a89d8a;text-align:center;}
+
+  @media (max-width:560px){
+    h1{font-size:26px}
+    .steps{grid-template-columns:1fr;}
+    .piece{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="staff" aria-hidden="true">
+      <div class="lines"></div>
+      <span class="note" style="left:16%;top:42px"></span>
+      <span class="note" style="left:32%;top:30px"></span>
+      <span class="note" style="left:48%;top:47px"></span>
+      <span class="note" style="left:64%;top:19px"></span>
+      <span class="dyn">mf</span>
+    </div>
+    <h1>小提琴指法教室</h1>
+    <p class="sub">为初学者整理的曲谱与指法动画索引 —— 看动画、认指法、跟唱唱名，快速上手新曲子。</p>
+  </header>
+
+  <main>
+    <section class="piece">
+      <h2>魔笛序曲<span class="en">The Magic Flute · Overture</span></h2>
+      <p class="meta">莫扎特 曲 · Violin III 声部 · 第一把位</p>
+      <div class="tags">
+        <span>63 小节</span><span>Allegro ♩=126</span><span>变速 · 循环 · 预备拍</span>
+      </div>
+      <div class="actions">
+        <a class="btn solid" href="pieces/The_Magic_Flute.html">▶ 指法教学动画</a>
+        <a class="btn ghost pdf-btn" href="pdfs/魔笛序曲-Overture%20-%20Violin%20III%20-%20指法标注版.pdf"
+           data-pdf="pdfs/魔笛序曲-Overture%20-%20Violin%20III%20-%20指法标注版.pdf"
+           data-title="魔笛序曲 · 曲谱 PDF">曲谱 PDF</a>
+      </div>
+    </section>
+
+    <section class="piece">
+      <h2>战台风<span class="en">四重奏版</span></h2>
+      <p class="meta">旋律自巴尔干民谣《Misirlou》· Violin III 声部 · E大调 · 第一把位</p>
+      <div class="tags">
+        <span>92 小节</span><span>♩=120</span><span>变速 · 循环 · 预备拍</span>
+      </div>
+      <div class="actions">
+        <a class="btn solid" href="pieces/Zhan_Taifeng.html">▶ 指法教学动画</a>
+        <a class="btn ghost pdf-btn" href="pdfs/战台风四重奏-Violin%20III-指法标注版.pdf"
+           data-pdf="pdfs/战台风四重奏-Violin%20III-指法标注版.pdf"
+           data-title="战台风 · 曲谱 PDF">曲谱 PDF</a>
+      </div>
+    </section>
+
+    <div class="steps">
+      <div class="step"><b>① 选曲，打开动画</b>选择段落，开启循环与预备拍。</div>
+      <div class="step"><b>② 调慢速，跟练指法</b>看指板图与唱名，边看边拉。</div>
+      <div class="step"><b>③ 对照 PDF 原谱</b>熟悉弓法与强弱记号，逐步提速。</div>
+    </div>
+  </main>
+
+  <footer>violin-killer · 曲目持续收录中 · 建议使用 Safari 或 Chrome 打开</footer>
+
+</div>
+
+<div class="mask" id="mask"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dhead">
+    <h3 id="dTitle">曲谱预览</h3>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <a class="dlink" id="dOpen" href="#" target="_blank" rel="noopener">新窗口打开</a>
+      <button class="dclose" id="dClose" aria-label="关闭">×</button>
+    </div>
+  </div>
+  <iframe id="pdfFrame" title="曲谱预览" src="about:blank"></iframe>
+</aside>
+
+<script>
+(function(){
+  var drawer=document.getElementById('drawer'), mask=document.getElementById('mask'),
+      frame=document.getElementById('pdfFrame'), title=document.getElementById('dTitle'),
+      dOpen=document.getElementById('dOpen');
+  function show(pdf,name){
+    title.textContent=name;
+    dOpen.href=pdf;
+    frame.src=pdf;
+    drawer.classList.add('on'); mask.classList.add('on');
+    drawer.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  }
+  function hide(){
+    drawer.classList.remove('on'); mask.classList.remove('on');
+    drawer.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+    setTimeout(function(){ if(!drawer.classList.contains('on')) frame.src='about:blank'; },350);
+  }
+  document.querySelectorAll('.pdf-btn').forEach(function(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      show(a.dataset.pdf, a.dataset.title||'曲谱 PDF');
+    });
+  });
+  mask.addEventListener('click',hide);
+  document.getElementById('dClose').addEventListener('click',hide);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') hide(); });
+})();
+</script>
+</body>
+</html>
