@@ -144,8 +144,10 @@ const SYL={C:"do",D:"re",E:"mi",F:"fa",G:"sol",A:"la",B:"si"};
 const sylOf=n=>{const m=n.match(/^([A-G])(#?)/);return m?(m[2]?"\u266f":"")+SYL[m[1]]:n;};
 
 // —— 状态 ——
-let playing=false, startOn=0, endOn=TOT, t0=0, speed=0.7, loop=true, metro=true, countin=true;
+let playing=false, startOn=0, endOn=TOT, speed=0.7, loop=true, metro=true, countin=true;
 let scheduled=[], timer=null, raf=null, curEv=null;
+let leadUsed=0;   // 本次播放的预备拍长度（八分音符）；播放中切换开关不改变当前时间轴
+let posAnchor=0, tAnchor=0, edAnchor=1;   // 时间轴锚点：音频时刻 tAnchor ↔ 谱面位置 posAnchor（当时每八分音符 edAnchor 秒）
 
 const eighthDur = () => 60/BPM/2/speed;
 
@@ -181,7 +183,7 @@ function playNote(midi, t, durS){
   const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2800; lp.Q.value=0.7;
   mix.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(g); g.connect(c.destination);
   o1.start(t); o2.start(t); o1.stop(t+durS+0.08); o2.stop(t+durS+0.08);
-  scheduled.push(o1,o2,lfo);
+  scheduled.push({src:o1,gain:g},{src:o2,gain:g},{src:lfo,gain:null});
 }
 function click(t, accent){
   const c=ac(), o=c.createOscillator(), g=c.createGain();
@@ -191,10 +193,22 @@ function click(t, accent){
   g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);
   o.connect(g); g.connect(c.destination);
   o.start(t); o.stop(t+0.09);
-  scheduled.push(o);
+  scheduled.push({src:o,gain:g});
 }
 function stopAll(){
-  scheduled.forEach(s=>{ try{s.stop(0);}catch(e){} });
+  if(!AC) return;
+  const now=AC.currentTime;
+  for(const v of scheduled){
+    try{
+      if(v.gain){                        // 快速淡出，避免硬切产生爆音
+        const gp=v.gain.gain;
+        if(gp.cancelAndHoldAtTime) gp.cancelAndHoldAtTime(now);
+        else { const cur=gp.value; gp.cancelScheduledValues(now); gp.setValueAtTime(cur,now); }
+        gp.linearRampToValueAtTime(0.0001, now+0.04);
+      }
+      v.src.stop(now+0.06);
+    }catch(e){}
+  }
   scheduled=[];
 }
 
@@ -245,39 +259,46 @@ speedEl.oninput=()=>{
   retimeTimer=setTimeout(retime,80);   // 节流：拖动中每80ms最多重排一次
 };
 
-function schedule(from8){
-  const c=ac(), ed=eighthDur();
-  let lead=0;
-  if(from8===undefined && countin){ for(let i=0;i<4;i++) click(t0+i*2*ed, i==0); lead=8; }
-  const from=(from8===undefined?startOn:Math.max(from8,startOn)), to=endOn;
+// —— 时间轴：谱面位置(八分音符) ↔ 音频时刻 ——
+//   锚点：音频时刻 tAnchor 对应谱面位置 posAnchor，当时每个八分音符 edAnchor 秒
+//   pos = posAnchor+(t-tAnchor)/edAnchor   ⇔   t = tAnchor+(pos-posAnchor)*edAnchor
+//   edAnchor 只在 retime() 中更新，所以拖动速度滑块时播放位置不会跳变
+function posNow(){ return posAnchor+(AC.currentTime-tAnchor)/edAnchor; }
+function timeAt(pos){ return tAnchor+(pos-posAnchor)*edAnchor; }
+
+function schedule(fromPos, toPos){         // 排程 [fromPos,toPos) 区间内的音符与节拍器
+  const c=ac(), now=c.currentTime;
   for(const e of EV){
-    if(e.on<from-0.01 || e.on>=to) continue;
-    const t=t0+lead*ed+(e.on-from)*ed;
-    if(!e.rest) playNote(e.midi, t, e.dur*ed*1.02);
+    if(e.on+e.dur<=fromPos || e.on>=toPos) continue;   // 已播完的音不再排程
+    if(e.rest) continue;
+    const t=Math.max(now, timeAt(e.on));   // 正在响的音立即续上，不重复触发
+    const durS=Math.max(0.06,(e.on+e.dur-Math.max(fromPos,e.on))*edAnchor);
+    playNote(e.midi, t, durS);
   }
   if(metro){
-    for(let b=Math.ceil(from/2)*2; b<to; b+=2){
-      const t=t0+lead*ed+(b-from)*ed;   // lead=预备拍8个八分, 与音符对齐
-      if(from8===undefined && countin && b<from+8 && from==0){} // 预备拍期间由预备拍声代替
+    for(let b=Math.ceil(fromPos/2)*2; b<toPos; b+=2){
+      const t=timeAt(b);
+      if(t<now-0.005) continue;
       click(t, ((b/2)%4)==0);
     }
   }
-  if(from8===undefined && countin) schedEnd=to+8; else schedEnd=to;
 }
 let schedEnd=0;
 function retime(){                       // 播放中调速：保持当前位置连续，只重排剩余音符
   if(!playing) return;
   const p=playPos();
-  if(p<startOn){ stop(); play(); return; }   // 仍在预备拍：直接重新开始
+  if(p<startOn){ stop(); play(); return; }   // 仍在预备拍：按新速度重放预备拍
   stopAll();
-  const ed=eighthDur();
-  t0=AC.currentTime+0.05-(p-startOn+(countin?8:0))*ed;   // 使 playPos() 仍等于 p
-  schedule(Math.floor(p));
+  posAnchor=p; tAnchor=AC.currentTime+0.05; edAnchor=eighthDur();   // 以当前位置为新锚点
+  schedule(p, endOn);
 }
 function play(){
   const c=ac(); c.resume();
-  t0=c.currentTime+0.15;
-  schedule();
+  leadUsed = countin ? 8 : 0;            // 预备拍长度在本次播放期间固定
+  edAnchor=eighthDur(); tAnchor=c.currentTime+0.15; posAnchor=startOn-leadUsed;
+  if(leadUsed){ for(let i=0;i<4;i++) click(tAnchor+i*2*edAnchor, i==0); }
+  schedEnd=endOn;
+  schedule(startOn, endOn);
   playing=true; playBtn.textContent='⏸ 暂停'; playBtn.classList.add('playing');
   tick();
 }
@@ -290,8 +311,7 @@ document.addEventListener('keydown',e=>{ if(e.code=='Space'){e.preventDefault();
 
 function tick(){
   if(!playing) return;
-  const ed=eighthDur();
-  const pos=(AC.currentTime-t0)/ed+startOn-(countin?8:0);
+  const pos=posNow();
   if(pos>=schedEnd){
     if(loop){ stop(); play(); return; }
     stop(); updateNow(null); draw(); return;
@@ -352,7 +372,7 @@ function fitCanvas(){
   ctx.setTransform(2,0,0,2,0,0);
 }
 window.addEventListener('resize',()=>{fitCanvas();draw(playPos());});
-function playPos(){ return playing? (AC.currentTime-t0)/eighthDur()+startOn-(countin?8:0) : (curEv? curEv.on : startOn); }
+function playPos(){ return playing? posNow() : (curEv? curEv.on : startOn); }
 
 const TOP=70, HS=16;      // 五线谱顶线y、线间距
 function diY(di){ return TOP+(38-di)*HS/2; }
